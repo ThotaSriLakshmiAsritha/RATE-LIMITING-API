@@ -6,10 +6,34 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/ping': 'http://localhost:8080',
-      '/actuator': 'http://localhost:8080',
-      '/.well-known': 'http://localhost:8080',
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        logLevel: 'warn',
+      },
+      '/ping': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        logLevel: 'warn',
+      },
+      '/actuator': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        logLevel: 'warn',
+      },
+      '/.well-known': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        logLevel: 'warn',
+      },
     },
   },
 })

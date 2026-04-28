@@ -3,7 +3,7 @@ server:
 
 spring:
   profiles:
-    default: demo
+    default: local
   application:
     name: rate-limiting
 

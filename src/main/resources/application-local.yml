@@ -1,19 +1,67 @@
 spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  
+  data:
+    redis:
+      enabled: false
+  
   security:
     oauth2:
       resourceserver:
         jwt:
-          # Supabase JWKS endpoint
-          jwk-set-uri: ${SUPABASE_JWK_SET_URI:https://${SUPABASE_PROJECT_REF}.supabase.co/auth/v1/keys}
+          # Local mode validates tokens issued by this app (see /.well-known/jwks.json).
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+
+management:
+  health:
+    redis:
+      enabled: false
 
 rate-limiting:
+  enabled: true
+  fallback-mode: ALLOW
+  failure-handling:
+    redis-fallback-mode: ALLOW
+    db-fallback-mode: ALLOW
+    unexpected-fallback-mode: ALLOW
+    retry:
+      max-attempts: 2
+      delay-ms: 25
   cors:
     allowed-origins:
       - http://localhost:5173
       - http://localhost:5174
       - http://127.0.0.1:5173
       - http://127.0.0.1:5174
+  policy-cache:
+    redis-enabled: false
+  api-key:
+    header: X-API-Key
+  bypass:
+    ip-whitelist: []
+    api-key-whitelist: []
+  default-limits:
+    requests-per-minute: 100
+    burst-capacity: 20
+    dimension: IP
   supabase:
-    issuer: ${SUPABASE_ISSUER:https://${SUPABASE_PROJECT_REF}.supabase.co/auth/v1}
-    audience: ${SUPABASE_AUDIENCE:authenticated}
+    issuer: http://localhost:8080/auth/v1
+    audience: authenticated
+
+
 

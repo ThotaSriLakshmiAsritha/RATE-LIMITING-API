@@ -1,13 +1,16 @@
 package com.example.ratelimiting;
 
 import com.example.ratelimiting.config.RateLimitingProperties;
+import com.example.ratelimiting.policy.PolicyService;
 import com.example.ratelimiting.ratelimit.RateLimitPolicyResolver;
 import com.example.ratelimiting.ratelimit.annotation.RateLimitBypass;
 import com.example.ratelimiting.ratelimit.annotation.RateLimited;
+import com.example.ratelimiting.security.IdentityResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -25,7 +28,9 @@ class RateLimitPolicyResolverUnitTest {
         HandlerMethod hm = new HandlerMethod(new AnnotatedController(), AnnotatedController.class.getMethod("methodLimited"));
         HandlerMapping mapping = mockMapping(hm);
 
-        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of(mapping));
+        ObjectProvider<PolicyService> policyProvider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<IdentityResolver> identityProvider = Mockito.mock(ObjectProvider.class);
+        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of(mapping), policyProvider, identityProvider);
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/anything");
 
         var resolved = resolver.resolve(req);
@@ -44,7 +49,9 @@ class RateLimitPolicyResolverUnitTest {
         HandlerMethod hm = new HandlerMethod(new AnnotatedController(), AnnotatedController.class.getMethod("bypassed"));
         HandlerMapping mapping = mockMapping(hm);
 
-        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of(mapping));
+        ObjectProvider<PolicyService> policyProvider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<IdentityResolver> identityProvider = Mockito.mock(ObjectProvider.class);
+        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of(mapping), policyProvider, identityProvider);
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/products/admin");
 
         var resolved = resolver.resolve(req);
@@ -62,7 +69,9 @@ class RateLimitPolicyResolverUnitTest {
         specific.setRequestsPerMinute(10);
         props.setEndpointOverrides(List.of(broad, specific));
 
-        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of());
+        ObjectProvider<PolicyService> policyProvider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<IdentityResolver> identityProvider = Mockito.mock(ObjectProvider.class);
+        RateLimitPolicyResolver resolver = new RateLimitPolicyResolver(props, List.of(), policyProvider, identityProvider);
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/auth/login");
 
         var resolved = resolver.resolve(req);

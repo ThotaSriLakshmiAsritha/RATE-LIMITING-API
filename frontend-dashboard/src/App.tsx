@@ -1,40 +1,76 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { MainLayout } from './components/layout/MainLayout';
-import { Overview } from './pages/Overview';
-import { Policies } from './pages/Policies';
-import { LiveTraffic } from './pages/LiveTraffic';
-import { APIProducts } from './pages/APIProducts';
-import { Logs } from './pages/Logs';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { AppProvider } from './context/AppContext';
+import { Sidebar } from './components/layout/Sidebar';
+import { TopNav } from './components/layout/TopNav';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { ToastViewport } from './components/common/Toast';
+import { useHealthPoll } from './hooks/useHealthPoll';
 import { Login } from './pages/Login';
+import { NotFound } from './pages/NotFound';
+import { Dashboard } from './pages/Dashboard';
+import { Analytics } from './pages/Analytics';
+import { RateLimits } from './pages/RateLimits';
+import { Settings } from './pages/Settings';
+import { Admin } from './pages/Admin';
 
-// Placeholder components for missing pages
-const Analytics = () => <Overview />;
+const titleMap: Record<string, string> = {
+  '/': 'Operational Dashboard',
+  '/analytics': 'Analytics',
+  '/rate-limits': 'Rate Limits',
+  '/settings': 'Settings',
+  '/admin': 'Admin Panel',
+};
 
-function App() {
+function Shell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  useHealthPoll();
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate]);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="*"
-          element={
-            <MainLayout>
-              <Routes>
-                <Route path="/" element={<Overview />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/policies" element={<Policies />} />
-                <Route path="/live" element={<LiveTraffic />} />
-                <Route path="/products" element={<APIProducts />} />
-                <Route path="/logs" element={<Logs />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </MainLayout>
-          }
-        />
-      </Routes>
-    </Router>
+    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.08),_transparent_28%),linear-gradient(180deg,#0f1117_0%,#090b10_100%)] text-slate-100">
+      <Sidebar />
+      <div className="flex min-h-screen flex-1 flex-col pb-20 sm:pb-0">
+        <TopNav title={titleMap[location.pathname] ?? 'Atlas Pulse'} />
+        <main className="flex-1 p-4 sm:p-6">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/rate-limits" element={<RateLimits />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
+      <ToastViewport />
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AppProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/*" element={<Shell />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AppProvider>
+  );
+}

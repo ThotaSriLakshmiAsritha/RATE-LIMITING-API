@@ -33,15 +33,8 @@ public class RateLimitPolicyResolver {
     private final IdentityResolver identityResolver;
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
-    public RateLimitPolicyResolver(RateLimitingProperties properties, List<HandlerMapping> handlerMappings) {
-        this.properties = properties;
-        this.handlerMappings = handlerMappings;
-        this.policyService = null;
-        this.identityResolver = null;
-    }
-
-        @Autowired
-        public RateLimitPolicyResolver(
+    @Autowired
+    public RateLimitPolicyResolver(
             RateLimitingProperties properties,
             List<HandlerMapping> handlerMappings,
             ObjectProvider<PolicyService> policyServiceProvider,

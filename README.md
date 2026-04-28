@@ -4,23 +4,13 @@ Production-grade, distributed rate limiting demo built with **Spring Boot 3**, *
 
 ### Quickstart (local)
 
-Start dependencies:
-
-```bash
-docker compose up -d redis postgres
-```
-
-Run the app:
+Run the app directly:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-Or run everything in Docker:
-
-```bash
-docker compose up --build
-```
+The default `local` profile uses H2 in-memory storage and disables the Redis listener, so this works without Docker.
 
 Health + metrics:
 - `GET /actuator/health`
@@ -28,6 +18,22 @@ Health + metrics:
 
 Swagger UI:
 - `/swagger-ui.html`
+
+### Demo stack (Postgres + Redis)
+
+Start the full stack with Docker:
+
+```bash
+docker compose up --build
+```
+
+If you want to run the app against the containerized dependencies from your machine, start the supporting services first:
+
+```bash
+docker compose up -d redis postgres
+set SPRING_PROFILES_ACTIVE=demo
+./mvnw spring-boot:run
+```
 
 ### Demo auth
 

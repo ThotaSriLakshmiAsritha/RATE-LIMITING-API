@@ -1,89 +1,87 @@
-import React, { useState } from 'react';
-import { Shield, Lock, User, ArrowRight, Activity } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loginRequest } from '../api/auth';
+import { Card } from '../components/common/Card';
+import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
+import { useAppContext } from '../context/AppContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 
-export const Login = () => {
+export function Login() {
+  usePageTitle('Login');
+  const { state, login } = useAppContext();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('demo');
   const [password, setPassword] = useState('password');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simulate login and redirect to dashboard
-    navigate('/');
+  useEffect(() => {
+    if (state.authToken) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate, state.authToken]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await loginRequest(state.apiBaseUrl, username, password);
+      login(response.data.access_token, username);
+      navigate('/', { replace: true });
+    } catch (caught: unknown) {
+      const errorLike = caught as { status?: number; rateLimitHeaders?: { retryAfter?: number | null } };
+      if (errorLike.status === 401) {
+        setError('Invalid credentials');
+      } else if (errorLike.status === 429) {
+        setError(`Too many login attempts. Please wait ${errorLike.rateLimitHeaders?.retryAfter ?? 'a few'} seconds.`);
+      } else {
+        setError('Unable to reach the backend. Check the API base URL and backend status.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_36%),linear-gradient(180deg,#0f1117_0%,#090b10_100%)] px-4">
+      <Card className="w-full max-w-md p-8">
+        <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Rate Limiting Control Plane</p>
+        <h1 className="mt-3 font-display text-4xl text-white">Atlas Pulse</h1>
+        <p className="mt-3 text-sm text-slate-400">Distributed rate limiting, observable, testable, and tunable.</p>
 
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-2xl shadow-primary/30 mb-6 group transition-transform hover:scale-110">
-            <Shield className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-card-foreground">Welcome Back</h1>
-          <p className="text-muted-foreground mt-2">Sign in to manage your API rate limits.</p>
+        <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-sm text-slate-300">
+            Username
+            <input
+              aria-label="Username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300">
+            Password
+            <input
+              aria-label="Password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
+            />
+          </label>
+          {error ? <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</p> : null}
+          <Button type="submit" disabled={loading} aria-label="Sign in">
+            {loading ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+          <Badge tone="info">Demo account</Badge>
+          <p className="mt-2 text-sm text-slate-300">Use `demo / password` to explore the dashboard.</p>
         </div>
-
-        <div className="card p-8 bg-white/80 backdrop-blur-xl">
-          <form className="space-y-6" onSubmit={handleLogin}>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground">Username</label>
-              <div className="relative group">
-                <div className="absolute left-3 top-3.5 text-muted-foreground transition-colors group-focus-within:text-primary">
-                  <User className="h-5 w-5" />
-                </div>
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                  placeholder="Enter your username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-muted-foreground">Password</label>
-                <a href="#" className="text-xs font-bold text-primary hover:underline">Forgot?</a>
-              </div>
-              <div className="relative group">
-                <div className="absolute left-3 top-3.5 text-muted-foreground transition-colors group-focus-within:text-primary">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                  placeholder="Enter your password"
-                />
-              </div>
-            </div>
-
-            <button type="submit" className="w-full btn btn-primary py-4 text-base font-bold shadow-xl shadow-primary/25 rounded-xl group">
-              Sign In
-              <ArrowRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
-            </button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-border flex items-center justify-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">System Status</span>
-            <div className="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success ring-1 ring-success/20">
-              <div className="h-1 w-1 rounded-full bg-success animate-pulse" />
-              Healthy
-            </div>
-          </div>
-        </div>
-
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Don't have an account? <a href="#" className="font-bold text-primary hover:underline">Request API Access</a>
-        </p>
-      </div>
-    </div>
+      </Card>
+    </main>
   );
-};
+}

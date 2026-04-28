@@ -1,121 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: #0f1117;
+  --color-surface: #1a1d27;
+  --color-border: #2a2d3e;
+  --color-text-primary: #e8eaf0;
+  --color-text-muted: #6b7280;
+  --color-green: #22c55e;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+  --color-blue: #3b82f6;
+  --color-purple: #8b5cf6;
+}
+
 @layer base {
+  html {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-background text-card-foreground font-sans antialiased;
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  #root {
+    min-height: 100vh;
   }
 }
 
-@layer components {
-
-  .sidebar-shell {
-    @apply rounded-2xl border border-ink-200/80 bg-white/70 p-4 shadow-[0_8px_28px_rgba(16,31,24,0.06)] backdrop-blur transition-all duration-300;
+@layer utilities {
+  .font-display {
+    font-family: 'Space Mono', 'JetBrains Mono', monospace;
   }
 
-  .sidebar-collapsed {
-    @apply lg:w-[92px];
-  }
-
-  .nav-link {
-    @apply block rounded-xl px-3 py-2 text-ink-600 transition-all duration-200 hover:bg-ink-100/70 hover:text-ink-900;
-  }
-
-  .nav-link-active {
-    @apply bg-ink-800 text-white shadow-md;
-  }
-
-  .btn-base {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn-primary {
-    @apply bg-moss-500 text-white hover:bg-moss-700;
-  }
-
-  .btn-ghost {
-    @apply border border-ink-300 bg-white/80 text-ink-700 hover:bg-ink-100;
-  }
-
-  .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
-  }
-
-  .badge {
-    @apply inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-[0.1em];
-  }
-
-  .badge-neutral {
-    @apply bg-ink-100 text-ink-700;
-  }
-
-  .badge-success {
-    @apply bg-green-100 text-green-800;
-  }
-
-  .badge-warning {
-    @apply bg-amber-100 text-amber-800;
-  }
-
-  .badge-error {
-    @apply bg-rose-100 text-rose-800;
-  }
-
-  .table-wrap {
-    @apply overflow-x-auto rounded-xl border border-ink-200/70;
-  }
-
-  .chart-shell {
-    @apply overflow-hidden rounded-xl border border-ink-200/80 bg-white/80 p-2;
-  }
-
-  .input {
-    @apply rounded-lg border border-ink-300 bg-white/90 px-3 py-2 text-sm text-ink-800 outline-none ring-0 transition focus:border-moss-500;
-  }
-
-  .toast-shell {
-    @apply fixed bottom-5 right-5 z-50 flex items-center rounded-xl bg-ink-900 px-4 py-3 shadow-2xl;
-    animation: slide-up 280ms ease both;
-  }
-}
-
-.chart-path {
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  animation: draw-line 1.2s ease forwards;
-}
-
-@keyframes draw-line {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes reveal {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
