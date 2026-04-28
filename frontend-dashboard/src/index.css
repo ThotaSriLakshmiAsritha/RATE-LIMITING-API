@@ -1,50 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
-    color: #1a3025;
-    background: #f8fcfa;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
   body {
-    margin: 0;
-    min-height: 100vh;
-  }
-
-  #root {
-    min-height: 100vh;
+    @apply bg-background text-card-foreground font-sans antialiased;
   }
 }
 
 @layer components {
-  .bg-app-gradient {
-    background:
-      radial-gradient(circle at 10% 10%, rgba(22, 163, 74, 0.16), transparent 45%),
-      radial-gradient(circle at 90% 0%, rgba(15, 118, 110, 0.2), transparent 42%),
-      linear-gradient(140deg, #f8fcfa 0%, #eef6f2 70%, #e6f2eb 100%);
-  }
-
-  .glass-card {
-    @apply rounded-2xl border border-ink-200/80 bg-white/75 p-4 shadow-[0_12px_40px_rgba(26,48,37,0.08)] backdrop-blur;
-    animation: reveal 460ms ease both;
-  }
-
-  .metric-card {
-    @apply transition-transform duration-300 hover:-translate-y-1;
-  }
 
   .sidebar-shell {
     @apply rounded-2xl border border-ink-200/80 bg-white/70 p-4 shadow-[0_8px_28px_rgba(16,31,24,0.06)] backdrop-blur transition-all duration-300;

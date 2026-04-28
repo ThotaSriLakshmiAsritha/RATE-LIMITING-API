@@ -18,7 +18,25 @@ public class RateLimitingProperties {
     private ApiKey apiKey = new ApiKey();
 
     @Valid
+    private Cors cors = new Cors();
+
+    @Valid
     private Bypass bypass = new Bypass();
+
+    @Valid
+    private Identity identity = new Identity();
+
+    @Valid
+    private Sharding sharding = new Sharding();
+
+    @Valid
+    private Cost cost = new Cost();
+
+    @Valid
+    private Adaptive adaptive = new Adaptive();
+
+    @Valid
+    private FailureHandling failureHandling = new FailureHandling();
 
     @Valid
     @NotNull
@@ -53,12 +71,60 @@ public class RateLimitingProperties {
         this.apiKey = apiKey;
     }
 
+    public Cors getCors() {
+        return cors;
+    }
+
+    public void setCors(Cors cors) {
+        this.cors = cors;
+    }
+
     public Bypass getBypass() {
         return bypass;
     }
 
     public void setBypass(Bypass bypass) {
         this.bypass = bypass;
+    }
+
+    public Identity getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(Identity identity) {
+        this.identity = identity;
+    }
+
+    public Sharding getSharding() {
+        return sharding;
+    }
+
+    public void setSharding(Sharding sharding) {
+        this.sharding = sharding;
+    }
+
+    public Cost getCost() {
+        return cost;
+    }
+
+    public void setCost(Cost cost) {
+        this.cost = cost;
+    }
+
+    public Adaptive getAdaptive() {
+        return adaptive;
+    }
+
+    public void setAdaptive(Adaptive adaptive) {
+        this.adaptive = adaptive;
+    }
+
+    public FailureHandling getFailureHandling() {
+        return failureHandling;
+    }
+
+    public void setFailureHandling(FailureHandling failureHandling) {
+        this.failureHandling = failureHandling;
     }
 
     public DefaultLimits getDefaultLimits() {
@@ -113,7 +179,177 @@ public class RateLimitingProperties {
         }
     }
 
-    public enum Dimension {USER, IP, API_KEY, ENDPOINT, COMPOSITE}
+    public static class Identity {
+        @NotNull
+        private List<String> trustedProxies = List.of();
+
+        public List<String> getTrustedProxies() {
+            return trustedProxies;
+        }
+
+        public void setTrustedProxies(List<String> trustedProxies) {
+            this.trustedProxies = trustedProxies;
+        }
+    }
+
+    public static class Sharding {
+        private boolean enabled = false;
+        private int shardCount = 1;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getShardCount() {
+            return shardCount;
+        }
+
+        public void setShardCount(int shardCount) {
+            this.shardCount = shardCount;
+        }
+    }
+
+    public static class Cost {
+        @NotNull
+        private String header = "X-RateLimit-Cost";
+        private double min = 1.0;
+        private double max = 10.0;
+
+        public String getHeader() {
+            return header;
+        }
+
+        public void setHeader(String header) {
+            this.header = header;
+        }
+
+        public double getMin() {
+            return min;
+        }
+
+        public void setMin(double min) {
+            this.min = min;
+        }
+
+        public double getMax() {
+            return max;
+        }
+
+        public void setMax(double max) {
+            this.max = max;
+        }
+    }
+
+    public static class Adaptive {
+        private boolean enabled = false;
+        private double maxLatencyMs = 10.0;
+        private double minScale = 0.5;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public double getMaxLatencyMs() {
+            return maxLatencyMs;
+        }
+
+        public void setMaxLatencyMs(double maxLatencyMs) {
+            this.maxLatencyMs = maxLatencyMs;
+        }
+
+        public double getMinScale() {
+            return minScale;
+        }
+
+        public void setMinScale(double minScale) {
+            this.minScale = minScale;
+        }
+    }
+
+    public static class FailureHandling {
+        private FallbackMode redisFallbackMode;
+        private FallbackMode dbFallbackMode;
+        private FallbackMode unexpectedFallbackMode = FallbackMode.DENY;
+
+        @Valid
+        private Retry retry = new Retry();
+
+        public FallbackMode getRedisFallbackMode() {
+            return redisFallbackMode;
+        }
+
+        public void setRedisFallbackMode(FallbackMode redisFallbackMode) {
+            this.redisFallbackMode = redisFallbackMode;
+        }
+
+        public FallbackMode getDbFallbackMode() {
+            return dbFallbackMode;
+        }
+
+        public void setDbFallbackMode(FallbackMode dbFallbackMode) {
+            this.dbFallbackMode = dbFallbackMode;
+        }
+
+        public FallbackMode getUnexpectedFallbackMode() {
+            return unexpectedFallbackMode;
+        }
+
+        public void setUnexpectedFallbackMode(FallbackMode unexpectedFallbackMode) {
+            this.unexpectedFallbackMode = unexpectedFallbackMode;
+        }
+
+        public Retry getRetry() {
+            return retry;
+        }
+
+        public void setRetry(Retry retry) {
+            this.retry = retry;
+        }
+    }
+
+    public static class Cors {
+        @NotNull
+        private List<String> allowedOrigins = List.of();
+
+        public List<String> getAllowedOrigins() {
+            return allowedOrigins;
+        }
+
+        public void setAllowedOrigins(List<String> allowedOrigins) {
+            this.allowedOrigins = allowedOrigins;
+        }
+    }
+
+    public static class Retry {
+        private int maxAttempts = 2;
+        private long delayMs = 25;
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
+
+        public long getDelayMs() {
+            return delayMs;
+        }
+
+        public void setDelayMs(long delayMs) {
+            this.delayMs = delayMs;
+        }
+    }
+
+    public enum Dimension {GLOBAL, TENANT, USER, IP, API_KEY, ENDPOINT, COMPOSITE}
 
     public static class DefaultLimits {
         private int requestsPerMinute = 100;

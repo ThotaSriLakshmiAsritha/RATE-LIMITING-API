@@ -1,16 +1,11 @@
 package com.example.ratelimiting.security;
 
 import com.example.ratelimiting.config.RateLimitingProperties;
-import com.example.ratelimiting.ratelimit.RateLimitKeyFactory;
-import com.example.ratelimiting.ratelimit.RateLimitPolicy;
-import com.example.ratelimiting.ratelimit.RateLimitPolicyResolver;
-import com.example.ratelimiting.ratelimit.RateLimitBackendUnavailableException;
-import com.example.ratelimiting.ratelimit.TokenBucketRequest;
+import com.example.ratelimiting.observability.CorrelationIdFilter;
+import com.example.ratelimiting.observability.RateLimitObservation;
+import com.example.ratelimiting.ratelimit.RateLimiterService;
 import com.example.ratelimiting.ratelimit.TokenBucketResult;
-import com.example.ratelimiting.ratelimit.TokenBucketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,25 +25,16 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RateLimitingFilter.class);
 
     private final RateLimitingProperties properties;
-    private final TokenBucketService tokenBucketService;
-    private final RateLimitPolicyResolver policyResolver;
-    private final RateLimitKeyFactory keyFactory;
-    private final MeterRegistry meterRegistry;
+    private final RateLimiterService rateLimiterService;
     private final ObjectMapper objectMapper;
 
     public RateLimitingFilter(
             RateLimitingProperties properties,
-            TokenBucketService tokenBucketService,
-            RateLimitPolicyResolver policyResolver,
-            RateLimitKeyFactory keyFactory,
-            MeterRegistry meterRegistry,
+            RateLimiterService rateLimiterService,
             ObjectMapper objectMapper
     ) {
         this.properties = properties;
-        this.tokenBucketService = tokenBucketService;
-        this.policyResolver = policyResolver;
-        this.keyFactory = keyFactory;
-        this.meterRegistry = meterRegistry;
+        this.rateLimiterService = rateLimiterService;
         this.objectMapper = objectMapper;
     }
 
@@ -64,74 +50,53 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        var resolved = policyResolver.resolve(request);
-        RateLimitPolicy policy = resolved.policy();
-        if (policy.bypass()) {
-            filterChain.doFilter(request, response);
+        RateLimiterService.RateLimiterDecision decision = rateLimiterService.evaluate(request);
+
+        if (decision.headerResult() != null) {
+            addHeaders(response, decision.headerResult());
+        }
+
+        if (decision.rejected()) {
+            log.warn("request_observed method={} path={} endpoint={} status={} decision={} scope={} backend={} fallback={} duration_ms={} correlation_id={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    decision.endpointPattern(),
+                    HttpStatus.TOO_MANY_REQUESTS.value(),
+                    decision.decisionType().name(),
+                    decision.failedScope(),
+                    decision.backendType() != null ? decision.backendType().name() : "NONE",
+                    decision.fallbackApplied(),
+                    requestDurationMillis(request),
+                    response.getHeader(CorrelationIdFilter.HEADER));
+            writeRateLimitedResponse(request, response, decision.headerResult(), decision.message());
             return;
         }
 
-        var key = keyFactory.createKey(policy.dimension(), resolved.endpointPattern(), request);
-        TokenBucketResult result;
-        try {
-            Timer.Sample sample = Timer.start(meterRegistry);
-            result = tokenBucketService.consume(new TokenBucketRequest(
-                            key.toRedisKey(),
-                            policy.burstCapacity(),
-                            policy.refillRatePerSecond(),
-                            1.0
-                    )
-            );
-            sample.stop(meterRegistry.timer(
-                    "rate_limit_check_duration",
-                    "endpoint", resolved.endpointPattern(),
-                    "dimension", policy.dimension().name()
-            ));
-        } catch (RateLimitBackendUnavailableException e) {
-            meterRegistry.counter("rate_limit_checks_total",
-                    "endpoint", resolved.endpointPattern(),
-                    "dimension", policy.dimension().name(),
-                    "result", "backend_unavailable"
-            ).increment();
-            if (properties.getFallbackMode() == RateLimitingProperties.FallbackMode.ALLOW || isPingPath(request)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            objectMapper.writeValue(response.getOutputStream(), Map.of(
-                    "error", "rate_limiter_unavailable",
-                    "message", "Rate limiting unavailable. Please try again later.",
-                    "status", HttpStatus.SERVICE_UNAVAILABLE.value()
-            ));
+        if (!decision.allowed()) {
+            log.warn("request_observed method={} path={} endpoint={} status={} decision={} scope={} backend={} fallback={} duration_ms={} correlation_id={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    decision.endpointPattern(),
+                    HttpStatus.SERVICE_UNAVAILABLE.value(),
+                    decision.decisionType().name(),
+                    Optional.ofNullable((String) request.getAttribute(RateLimitObservation.RATE_LIMIT_SCOPE)).orElse("NONE"),
+                    decision.backendType() != null ? decision.backendType().name() : "NONE",
+                    decision.fallbackApplied(),
+                    requestDurationMillis(request),
+                    response.getHeader(CorrelationIdFilter.HEADER));
+            writeUnavailableResponse(response, decision.message());
             return;
         }
 
-        addHeaders(response, result);
-
-        if (!result.allowed()) {
-            meterRegistry.counter("rate_limit_checks_total",
-                    "endpoint", resolved.endpointPattern(),
-                    "dimension", policy.dimension().name(),
-                    "result", "rejected"
-            ).increment();
-
-            String msg = (policy.errorMessage() == null || policy.errorMessage().isBlank())
-                    ? "Rate limit exceeded. Please try again later."
-                    : policy.errorMessage();
-            log.warn("Rate limit exceeded endpoint={} dimension={} remainingTokens={}",
-                    resolved.endpointPattern(), policy.dimension().name(), result.remainingTokens());
-            writeRateLimitedResponse(request, response, result, msg);
-            return;
+        if (decision.backendFailure()) {
+            log.info("rate_limit_fallback_applied method={} path={} endpoint={} backend={} fallback={} correlation_id={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    decision.endpointPattern(),
+                    decision.backendType(),
+                    decision.fallbackApplied(),
+                    response.getHeader(CorrelationIdFilter.HEADER));
         }
-
-        meterRegistry.counter("rate_limit_checks_total",
-                "endpoint", resolved.endpointPattern(),
-                "dimension", policy.dimension().name(),
-                "result", "allowed"
-        ).increment();
-        log.debug("Rate limit allowed endpoint={} dimension={} remainingTokens={}",
-                resolved.endpointPattern(), policy.dimension().name(), result.remainingTokens());
         filterChain.doFilter(request, response);
     }
 
@@ -177,11 +142,23 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 }
     }
 
-        private static boolean isPingPath(HttpServletRequest request) {
-                String path = Optional.ofNullable(request.getRequestURI()).orElse("");
-                return "/ping".equals(path);
-        }
+    private void writeUnavailableResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), Map.of(
+                "error", "rate_limiter_unavailable",
+                "message", message,
+                "status", HttpStatus.SERVICE_UNAVAILABLE.value()
+        ));
+    }
 
-    // identity extraction moved to ClientIdentityExtractor
+    private static String requestDurationMillis(HttpServletRequest request) {
+        Object startedAt = request.getAttribute(RateLimitObservation.REQUEST_START_NANOS);
+        if (!(startedAt instanceof Long started)) {
+            return "0.000";
+        }
+        double elapsedMs = (System.nanoTime() - started) / 1_000_000.0;
+        return String.format(java.util.Locale.ROOT, "%.3f", elapsedMs);
+    }
 }
 

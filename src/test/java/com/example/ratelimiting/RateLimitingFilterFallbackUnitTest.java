@@ -1,11 +1,8 @@
 package com.example.ratelimiting;
 
 import com.example.ratelimiting.config.RateLimitingProperties;
-import com.example.ratelimiting.ratelimit.RateLimitBackendUnavailableException;
-import com.example.ratelimiting.ratelimit.RateLimitKeyFactory;
-import com.example.ratelimiting.ratelimit.RateLimitPolicy;
-import com.example.ratelimiting.ratelimit.RateLimitPolicyResolver;
-import com.example.ratelimiting.ratelimit.TokenBucketService;
+import com.example.ratelimiting.ratelimit.BackendType;
+import com.example.ratelimiting.ratelimit.RateLimiterService;
 import com.example.ratelimiting.security.RateLimitingFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -23,23 +20,19 @@ class RateLimitingFilterFallbackUnitTest {
         RateLimitingProperties props = new RateLimitingProperties();
         props.setFallbackMode(RateLimitingProperties.FallbackMode.ALLOW);
 
-        TokenBucketService tokenBucketService = Mockito.mock(TokenBucketService.class);
-        Mockito.when(tokenBucketService.consume(Mockito.any()))
-                .thenThrow(new RateLimitBackendUnavailableException("down", new RuntimeException("boom")));
-
-        RateLimitPolicyResolver resolver = Mockito.mock(RateLimitPolicyResolver.class);
-        Mockito.when(resolver.resolve(Mockito.any())).thenReturn(
-                new RateLimitPolicyResolver.ResolvedPolicy(
-                        new RateLimitPolicy(100, 20, RateLimitingProperties.Dimension.IP, "", false),
-                        "/x"
+        RateLimiterService service = Mockito.mock(RateLimiterService.class);
+        Mockito.when(service.evaluate(Mockito.any())).thenReturn(
+                RateLimiterService.RateLimiterDecision.allowed(
+                        "/x",
+                        null,
+                        true,
+                        true,
+                        BackendType.REDIS,
+                        "fallback"
                 )
         );
 
-        RateLimitKeyFactory keyFactory = Mockito.mock(RateLimitKeyFactory.class);
-        Mockito.when(keyFactory.createKey(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(new com.example.ratelimiting.ratelimit.RateLimitKey(RateLimitingProperties.Dimension.IP, "1.2.3.4", "hash"));
-
-        RateLimitingFilter filter = new RateLimitingFilter(props, tokenBucketService, resolver, keyFactory, new SimpleMeterRegistry(), objectMapper());
+        RateLimitingFilter filter = new RateLimitingFilter(props, service, objectMapper());
 
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/products");
         MockHttpServletResponse resp = new MockHttpServletResponse();
@@ -54,23 +47,15 @@ class RateLimitingFilterFallbackUnitTest {
         RateLimitingProperties props = new RateLimitingProperties();
         props.setFallbackMode(RateLimitingProperties.FallbackMode.DENY);
 
-        TokenBucketService tokenBucketService = Mockito.mock(TokenBucketService.class);
-        Mockito.when(tokenBucketService.consume(Mockito.any()))
-                .thenThrow(new RateLimitBackendUnavailableException("down", new RuntimeException("boom")));
-
-        RateLimitPolicyResolver resolver = Mockito.mock(RateLimitPolicyResolver.class);
-        Mockito.when(resolver.resolve(Mockito.any())).thenReturn(
-                new RateLimitPolicyResolver.ResolvedPolicy(
-                        new RateLimitPolicy(100, 20, RateLimitingProperties.Dimension.IP, "", false),
-                        "/x"
+        RateLimiterService service = Mockito.mock(RateLimiterService.class);
+        Mockito.when(service.evaluate(Mockito.any())).thenReturn(
+                RateLimiterService.RateLimiterDecision.unavailable(
+                        BackendType.REDIS,
+                        "Rate limiting unavailable. Please try again later."
                 )
         );
 
-        RateLimitKeyFactory keyFactory = Mockito.mock(RateLimitKeyFactory.class);
-        Mockito.when(keyFactory.createKey(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(new com.example.ratelimiting.ratelimit.RateLimitKey(RateLimitingProperties.Dimension.IP, "1.2.3.4", "hash"));
-
-        RateLimitingFilter filter = new RateLimitingFilter(props, tokenBucketService, resolver, keyFactory, new SimpleMeterRegistry(), objectMapper());
+        RateLimitingFilter filter = new RateLimitingFilter(props, service, objectMapper());
 
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/products");
         MockHttpServletResponse resp = new MockHttpServletResponse();

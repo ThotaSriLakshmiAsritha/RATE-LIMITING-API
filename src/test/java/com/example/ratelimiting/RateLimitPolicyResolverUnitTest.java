@@ -29,9 +29,12 @@ class RateLimitPolicyResolverUnitTest {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/anything");
 
         var resolved = resolver.resolve(req);
+        org.assertj.core.api.Assertions.assertThat(resolved.policies()).hasSize(2);
         org.assertj.core.api.Assertions.assertThat(resolved.policy().requestsPerMinute()).isEqualTo(5);
         org.assertj.core.api.Assertions.assertThat(resolved.policy().burstCapacity()).isEqualTo(2);
         org.assertj.core.api.Assertions.assertThat(resolved.policy().dimension()).isEqualTo(RateLimitingProperties.Dimension.USER);
+        org.assertj.core.api.Assertions.assertThat(resolved.policies().get(0).scope().name()).isEqualTo("GLOBAL");
+        org.assertj.core.api.Assertions.assertThat(resolved.policies().get(1).scope().name()).isEqualTo("ENDPOINT");
     }
 
     @Test
@@ -45,7 +48,7 @@ class RateLimitPolicyResolverUnitTest {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/products/admin");
 
         var resolved = resolver.resolve(req);
-        org.assertj.core.api.Assertions.assertThat(resolved.policy().bypass()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(resolved.bypass()).isTrue();
     }
 
     @Test

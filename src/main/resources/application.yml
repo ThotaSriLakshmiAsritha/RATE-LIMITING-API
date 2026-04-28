@@ -56,6 +56,13 @@ logging:
 rate-limiting:
   enabled: true
   fallback-mode: DENY
+  failure-handling:
+    redis-fallback-mode: DENY
+    db-fallback-mode: ALLOW
+    unexpected-fallback-mode: DENY
+    retry:
+      max-attempts: 2
+      delay-ms: 25
   cors:
     allowed-origins:
       - http://localhost:5173
@@ -76,6 +83,18 @@ rate-limiting:
 resilience4j:
   circuitbreaker:
     instances:
+      dbPolicyLookup:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 5s
+        recordExceptions:
+          - org.springframework.jdbc.CannotGetJdbcConnectionException
+          - org.springframework.dao.QueryTimeoutException
+          - org.springframework.dao.CannotAcquireLockException
+          - org.springframework.dao.TransientDataAccessResourceException
       redisRateLimit:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 20

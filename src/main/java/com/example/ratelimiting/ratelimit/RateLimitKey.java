@@ -5,10 +5,11 @@ import com.example.ratelimiting.config.RateLimitingProperties;
 public record RateLimitKey(
         RateLimitingProperties.Dimension dimension,
         String identifier,
-        String endpointHash
+        String endpointHash,
+        int shard
 ) {
     public String toRedisKey() {
-        return "rate_limit:" + dimension.name() + ":" + identifier + ":" + endpointHash;
+        return "rate_limit:" + dimension.name() + ":" + identifier + ":" + endpointHash + ":s" + shard;
     }
 }
 

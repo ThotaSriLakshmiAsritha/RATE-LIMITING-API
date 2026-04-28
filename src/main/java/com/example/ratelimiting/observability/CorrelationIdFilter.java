@@ -15,7 +15,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     public static final String MDC_KEY = "correlation_id";
 
     @Override
-    protected void doFilterInternal(
+	    protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
@@ -24,8 +24,11 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
                 .filter(v -> !v.isBlank())
                 .orElseGet(() -> UUID.randomUUID().toString());
 
-        MDC.put(MDC_KEY, correlationId);
-        response.setHeader(HEADER, correlationId);
+	        MDC.put(MDC_KEY, correlationId);
+        if (request.getAttribute(RateLimitObservation.REQUEST_START_NANOS) == null) {
+            request.setAttribute(RateLimitObservation.REQUEST_START_NANOS, System.nanoTime());
+        }
+	        response.setHeader(HEADER, correlationId);
         try {
             filterChain.doFilter(request, response);
         } finally {
