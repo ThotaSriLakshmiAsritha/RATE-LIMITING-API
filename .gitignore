@@ -1,22 +1,174 @@
+# ==================
 # Java/Maven
-/target/
+# ==================
+target/
 **/target/
+.m2/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+!*.jar.original
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
 
-# Node
+# ==================
+# Node.js / Frontend
+# ==================
 **/node_modules/
 **/dist/
+**/build/
 **/.vite/
+**/coverage/
+frontend-dashboard/.next/
+frontend-dashboard/out/
+frontend-dashboard/yarn-error.log*
+frontend-dashboard/npm-debug.log*
 
-# Logs
-*.log
+# ==================
+# Build Output & Cache
+# ==================
+.gradle/
+build/
+*.gradle.bak
+gradle-app.setting
+.gradletasknamecache
+.cache/
+.parcel-cache/
+dist-ssr/
+*.ssbuildinfo
 
-# OS
-.DS_Store
+# ==================
+# Testing
+# ==================
+.nyc_output/
+.coverage/
+coverage/
+*.lcov
+test-results/
+junit.xml
 
-# IDE
+# ==================
+# IDE / Editor
+# ==================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.env.local.php
+.cache/
+.parcel-cache/
+.next
+out/
+.nxt/
+.vuepress/dist
+.cache-loader
+.tern-port
+.vscode-test
+.yarn/cache
+.yarn/unplugged
 
-# Env
+# ==================
+# Environment Files
+# ==================
 .env
-.env.*
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ==================
+# OS / System Files
+# ==================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+Icon
+*.swp
+*.swo
+*~
+
+# ==================
+# Logs
+# ==================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+*.pid
+*.seed
+*.pid.lock
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==================
+# Docker
+# ==================
+.dockerignore
+.docker/
+
+# ==================
+# Local Development
+# ==================
+.vagrant/
+Vagrantfile.local
+local.properties
+gradle.properties
+*.sublime-project
+
+# ==================
+# CI/CD Artifacts
+# ==================
+.circleci/cache/
+.github/workflows/cache/
+
+# ==================
+# Misc
+# ==================
+.jdk/
+.m2/repository/
+.npm/
+.nvm/
+.rvm/
+.ruby-version
+.ruby-gemset
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+.#*
+*#*#
+*.rej
+merge_file_*
+*.jks
+*.keystore
