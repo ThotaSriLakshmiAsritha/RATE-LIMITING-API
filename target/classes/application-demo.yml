@@ -1,0 +1,9 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Demo mode validates tokens issued by this app (see /.well-known/jwks.json).
+          # In demo we also provide a local JwtDecoder bean, so this is mainly for clarity.
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+

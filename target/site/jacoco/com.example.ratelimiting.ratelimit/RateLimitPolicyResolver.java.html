@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimitPolicyResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">rate-limiting</a> &gt; <a href="index.source.html" class="el_package">com.example.ratelimiting.ratelimit</a> &gt; <span class="el_source">RateLimitPolicyResolver.java</span></div><h1>RateLimitPolicyResolver.java</h1><pre class="source lang-java linenums"><span class="fc" id="L1">package com.example.ratelimiting.ratelimit;</span>
+
+import com.example.ratelimiting.config.RateLimitingProperties;
+import com.example.ratelimiting.ratelimit.annotation.RateLimitBypass;
+import com.example.ratelimiting.ratelimit.annotation.RateLimited;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.HandlerMapping;
+
+@Component
+public class RateLimitPolicyResolver {
+    private final RateLimitingProperties properties;
+    private final List&lt;HandlerMapping&gt; handlerMappings;
+<span class="fc" id="L21">    private final AntPathMatcher antPathMatcher = new AntPathMatcher();</span>
+
+<span class="fc" id="L23">    public RateLimitPolicyResolver(RateLimitingProperties properties, List&lt;HandlerMapping&gt; handlerMappings) {</span>
+<span class="fc" id="L24">        this.properties = properties;</span>
+<span class="fc" id="L25">        this.handlerMappings = handlerMappings;</span>
+<span class="fc" id="L26">    }</span>
+
+    public ResolvedPolicy resolve(HttpServletRequest request) {
+<span class="fc" id="L29">        String requestPath = Optional.ofNullable(request.getRequestURI()).orElse(&quot;&quot;);</span>
+<span class="fc" id="L30">        HandlerMethod handlerMethod = findHandlerMethod(request).orElse(null);</span>
+
+<span class="fc" id="L32">        boolean bypass = requestPath.startsWith(&quot;/actuator/&quot;);</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        if (handlerMethod != null) {</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">            bypass = bypass</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">                    || hasBypass(handlerMethod.getMethod())</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">                    || hasBypass(handlerMethod.getBeanType());</span>
+        }
+
+<span class="fc" id="L39">        RateLimitPolicy base = new RateLimitPolicy(</span>
+<span class="fc" id="L40">                properties.getDefaultLimits().getRequestsPerMinute(),</span>
+<span class="fc" id="L41">                properties.getDefaultLimits().getBurstCapacity(),</span>
+<span class="fc" id="L42">                properties.getDefaultLimits().getDimension(),</span>
+<span class="fc" id="L43">                &quot;&quot;,</span>
+<span class="fc" id="L44">                bypass</span>
+        );
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        RateLimited ann = handlerMethod != null ? findRateLimited(handlerMethod.getMethod()) : null;</span>
+<span class="fc bfc" id="L48" title="All 4 branches covered.">        if (ann == null &amp;&amp; handlerMethod != null) {</span>
+<span class="fc" id="L49">            ann = findRateLimited(handlerMethod.getBeanType());</span>
+        }
+
+<span class="fc" id="L52">        RateLimitPolicy merged = mergeAnnotation(base, ann);</span>
+
+<span class="fc" id="L54">        String endpointPattern = resolveEndpointPattern(requestPath);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (handlerMethod != null) {</span>
+<span class="fc" id="L56">            endpointPattern = extractBestPattern(request).orElse(endpointPattern);</span>
+        }
+
+<span class="fc" id="L59">        RateLimitingProperties.EndpointOverride override = bestOverrideMatch(endpointPattern);</span>
+<span class="fc" id="L60">        merged = applyOverride(merged, override);</span>
+
+<span class="fc" id="L62">        return new ResolvedPolicy(merged, endpointPattern);</span>
+    }
+
+    private Optional&lt;HandlerMethod&gt; findHandlerMethod(HttpServletRequest request) {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        for (HandlerMapping mapping : handlerMappings) {</span>
+            try {
+<span class="fc" id="L68">                HandlerExecutionChain chain = mapping.getHandler(request);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">                if (chain == null) {</span>
+<span class="nc" id="L70">                    continue;</span>
+                }
+<span class="fc" id="L72">                Object handler = chain.getHandler();</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">                if (handler instanceof HandlerMethod hm) {</span>
+<span class="fc" id="L74">                    return Optional.of(hm);</span>
+                }
+<span class="nc" id="L76">            } catch (Exception ignored) {</span>
+                // keep trying other mappings
+            }
+        }
+<span class="fc" id="L80">        return Optional.empty();</span>
+    }
+
+    private Optional&lt;String&gt; extractBestPattern(HttpServletRequest request) {
+<span class="fc" id="L84">        Object attr = request.getAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);</span>
+<span class="pc bpc" id="L85" title="3 of 4 branches missed.">        if (attr instanceof String s &amp;&amp; !s.isBlank()) {</span>
+<span class="nc" id="L86">            return Optional.of(s);</span>
+        }
+<span class="fc" id="L88">        return Optional.empty();</span>
+    }
+
+    private static boolean hasBypass(java.lang.reflect.AnnotatedElement element) {
+<span class="fc" id="L92">        return AnnotatedElementUtils.hasAnnotation(element, RateLimitBypass.class);</span>
+    }
+
+    private static RateLimited findRateLimited(java.lang.reflect.AnnotatedElement element) {
+<span class="fc" id="L96">        return AnnotatedElementUtils.findMergedAnnotation(element, RateLimited.class);</span>
+    }
+
+    private static RateLimitPolicy mergeAnnotation(RateLimitPolicy base, RateLimited ann) {
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (ann == null) {</span>
+<span class="fc" id="L101">            return base;</span>
+        }
+
+<span class="fc" id="L104">        int rpm = base.requestsPerMinute();</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (ann.requestsPerMinute() &gt; 0) {</span>
+<span class="fc" id="L106">            rpm = ann.requestsPerMinute();</span>
+<span class="pc bnc" id="L107" title="All 2 branches missed.">        } else if (ann.requestsPerHour() &gt; 0) {</span>
+<span class="nc" id="L108">            rpm = Math.max(1, (int) Math.ceil(ann.requestsPerHour() / 60.0));</span>
+        }
+
+<span class="fc" id="L111">        int burst = base.burstCapacity();</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        if (ann.burstCapacity() &gt; 0) {</span>
+<span class="fc" id="L113">            burst = ann.burstCapacity();</span>
+        }
+
+<span class="fc" id="L116">        String message = base.errorMessage();</span>
+<span class="pc bpc" id="L117" title="2 of 4 branches missed.">        if (ann.errorMessage() != null &amp;&amp; !ann.errorMessage().isBlank()) {</span>
+<span class="nc" id="L118">            message = ann.errorMessage();</span>
+        }
+
+<span class="fc" id="L121">        return new RateLimitPolicy(rpm, burst, ann.dimension(), message, base.bypass());</span>
+    }
+
+    private RateLimitingProperties.EndpointOverride bestOverrideMatch(String endpointPatternOrPath) {
+<span class="fc" id="L125">        return properties.getEndpointOverrides().stream()</span>
+<span class="fc" id="L126">                .filter(o -&gt; antPathMatcher.match(o.getPattern(), endpointPatternOrPath))</span>
+<span class="fc" id="L127">                .max(Comparator.comparingInt(o -&gt; o.getPattern().length()))</span>
+<span class="fc" id="L128">                .orElse(null);</span>
+    }
+
+    private static RateLimitPolicy applyOverride(RateLimitPolicy base, RateLimitingProperties.EndpointOverride override) {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (override == null) {</span>
+<span class="fc" id="L133">            return base;</span>
+        }
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        int rpm = override.getRequestsPerMinute() != null ? override.getRequestsPerMinute() : base.requestsPerMinute();</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        int burst = override.getBurstCapacity() != null ? override.getBurstCapacity() : base.burstCapacity();</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        RateLimitingProperties.Dimension dim = override.getDimension() != null ? override.getDimension() : base.dimension();</span>
+<span class="fc" id="L138">        return new RateLimitPolicy(rpm, burst, dim, base.errorMessage(), base.bypass());</span>
+    }
+
+    private static String resolveEndpointPattern(String requestPath) {
+<span class="pc bpc" id="L142" title="2 of 4 branches missed.">        if (requestPath == null || requestPath.isBlank()) {</span>
+<span class="nc" id="L143">            return &quot;/&quot;;</span>
+        }
+<span class="fc" id="L145">        return requestPath;</span>
+    }
+
+    public record ResolvedPolicy(RateLimitPolicy policy, String endpointPattern) {
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

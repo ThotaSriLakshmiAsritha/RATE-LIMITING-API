@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenBucketService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">rate-limiting</a> &gt; <a href="index.source.html" class="el_package">com.example.ratelimiting.ratelimit</a> &gt; <span class="el_source">TokenBucketService.java</span></div><h1>TokenBucketService.java</h1><pre class="source lang-java linenums">package com.example.ratelimiting.ratelimit;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.Supplier;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TokenBucketService {
+    private final StringRedisTemplate redisTemplate;
+    @SuppressWarnings(&quot;rawtypes&quot;)
+    private final DefaultRedisScript&lt;List&gt; tokenBucketScript;
+    private final CircuitBreaker circuitBreaker;
+    private final Counter redisFailures;
+
+<span class="nc" id="L25">    public TokenBucketService(</span>
+            StringRedisTemplate redisTemplate,
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            MeterRegistry meterRegistry
+    ) {
+<span class="nc" id="L30">        this.redisTemplate = redisTemplate;</span>
+<span class="nc" id="L31">        this.tokenBucketScript = new DefaultRedisScript&lt;&gt;();</span>
+<span class="nc" id="L32">        this.tokenBucketScript.setResultType(List.class);</span>
+<span class="nc" id="L33">        this.tokenBucketScript.setScriptText(loadScript(&quot;ratelimit/token_bucket.lua&quot;));</span>
+<span class="nc" id="L34">        this.circuitBreaker = circuitBreakerRegistry.circuitBreaker(&quot;redisRateLimit&quot;);</span>
+<span class="nc" id="L35">        this.redisFailures = Counter.builder(&quot;rate_limit_redis_failures_total&quot;).register(meterRegistry);</span>
+<span class="nc" id="L36">    }</span>
+
+    public TokenBucketResult consume(TokenBucketRequest request) {
+<span class="nc" id="L39">        Supplier&lt;List&lt;Object&gt;&gt; call = () -&gt; {</span>
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L41">            List&lt;Object&gt; result = redisTemplate.execute(</span>
+<span class="nc" id="L42">                    tokenBucketScript,</span>
+<span class="nc" id="L43">                    List.of(request.redisKey()),</span>
+<span class="nc" id="L44">                    Double.toString(request.capacity()),</span>
+<span class="nc" id="L45">                    Double.toString(request.refillRatePerSecond()),</span>
+<span class="nc" id="L46">                    Double.toString(request.tokensRequired())</span>
+            );
+<span class="nc" id="L48">            return result;</span>
+        };
+
+        List&lt;Object&gt; result;
+        try {
+<span class="nc" id="L53">            result = CircuitBreaker.decorateSupplier(circuitBreaker, call).get();</span>
+<span class="nc" id="L54">        } catch (Exception e) {</span>
+<span class="nc" id="L55">            redisFailures.increment();</span>
+<span class="nc" id="L56">            throw new RateLimitBackendUnavailableException(&quot;Redis rate limit backend unavailable&quot;, e);</span>
+        }
+
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        if (result == null || result.size() &lt; 5) {</span>
+<span class="nc" id="L60">            return new TokenBucketResult(false, 0, request.capacity(), 0, 0);</span>
+        }
+
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        boolean allowed = asLong(result.get(0)) == 1L;</span>
+<span class="nc" id="L64">        double remaining = asDouble(result.get(1));</span>
+<span class="nc" id="L65">        double limit = asDouble(result.get(2));</span>
+<span class="nc" id="L66">        long reset = asLong(result.get(3));</span>
+<span class="nc" id="L67">        long retryAfter = asLong(result.get(4));</span>
+<span class="nc" id="L68">        return new TokenBucketResult(allowed, remaining, limit, reset, retryAfter);</span>
+    }
+
+    private static String loadScript(String classpathPath) {
+<span class="nc" id="L72">        Resource resource = new ClassPathResource(classpathPath);</span>
+<span class="nc" id="L73">        try (var in = resource.getInputStream()) {</span>
+<span class="nc" id="L74">            return new String(in.readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L75">        } catch (IOException e) {</span>
+<span class="nc" id="L76">            throw new IllegalStateException(&quot;Failed to load Lua script: &quot; + classpathPath, e);</span>
+        }
+    }
+
+    private static long asLong(Object value) {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L82">            return 0L;</span>
+        }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (value instanceof Number n) {</span>
+<span class="nc" id="L85">            return n.longValue();</span>
+        }
+<span class="nc" id="L87">        return Long.parseLong(value.toString());</span>
+    }
+
+    private static double asDouble(Object value) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L92">            return 0.0;</span>
+        }
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (value instanceof Number n) {</span>
+<span class="nc" id="L95">            return n.doubleValue();</span>
+        }
+<span class="nc" id="L97">        return Double.parseDouble(value.toString());</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

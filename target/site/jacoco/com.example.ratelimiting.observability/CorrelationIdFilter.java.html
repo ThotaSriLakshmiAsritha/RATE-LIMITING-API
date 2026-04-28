@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CorrelationIdFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">rate-limiting</a> &gt; <a href="index.source.html" class="el_package">com.example.ratelimiting.observability</a> &gt; <span class="el_source">CorrelationIdFilter.java</span></div><h1>CorrelationIdFilter.java</h1><pre class="source lang-java linenums">package com.example.ratelimiting.observability;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.MDC;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+<span class="nc" id="L13">public class CorrelationIdFilter extends OncePerRequestFilter {</span>
+    public static final String HEADER = &quot;X-Correlation-Id&quot;;
+    public static final String MDC_KEY = &quot;correlation_id&quot;;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+<span class="nc" id="L23">        String correlationId = Optional.ofNullable(request.getHeader(HEADER))</span>
+<span class="nc bnc" id="L24" title="All 2 branches missed.">                .filter(v -&gt; !v.isBlank())</span>
+<span class="nc" id="L25">                .orElseGet(() -&gt; UUID.randomUUID().toString());</span>
+
+<span class="nc" id="L27">        MDC.put(MDC_KEY, correlationId);</span>
+<span class="nc" id="L28">        response.setHeader(HEADER, correlationId);</span>
+        try {
+<span class="nc" id="L30">            filterChain.doFilter(request, response);</span>
+<span class="nc" id="L31">        } finally {</span>
+<span class="nc" id="L32">            MDC.remove(MDC_KEY);</span>
+        }
+<span class="nc" id="L34">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

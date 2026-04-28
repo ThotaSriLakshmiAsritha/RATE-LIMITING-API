@@ -1,0 +1,88 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    default: demo
+  application:
+    name: rate-limiting
+
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/rate_limiting}
+    username: ${POSTGRES_USER:rate_limiting}
+    password: ${POSTGRES_PASSWORD:rate_limiting}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        rate_limit_check_duration: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    com.example.ratelimiting: INFO
+
+rate-limiting:
+  enabled: true
+  fallback-mode: DENY
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:5174
+      - http://127.0.0.1:5173
+      - http://127.0.0.1:5174
+  api-key:
+    header: X-API-Key
+  bypass:
+    ip-whitelist: []
+    api-key-whitelist: []
+  default-limits:
+    requests-per-minute: 100
+    burst-capacity: 20
+    dimension: IP
+  endpoint-overrides: []
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      redisRateLimit:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 5
+        waitDurationInOpenState: 10s
+        recordExceptions:
+          - org.springframework.data.redis.RedisConnectionFailureException
+

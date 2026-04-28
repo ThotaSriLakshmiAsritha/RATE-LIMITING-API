@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwksService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">rate-limiting</a> &gt; <a href="index.source.html" class="el_package">com.example.ratelimiting.security</a> &gt; <span class="el_source">JwksService.java</span></div><h1>JwksService.java</h1><pre class="source lang-java linenums">package com.example.ratelimiting.security;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.UUID;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+@Component
+@Profile(&quot;demo&quot;)
+public class JwksService {
+    private final RSAKey rsaJwk;
+
+<span class="nc" id="L21">    public JwksService() {</span>
+<span class="nc" id="L22">        this.rsaJwk = generate();</span>
+<span class="nc" id="L23">    }</span>
+
+    public JWKSet publicJwkSet() {
+<span class="nc" id="L26">        return new JWKSet(rsaJwk.toPublicJWK());</span>
+    }
+
+    public RSAKey signingKey() {
+<span class="nc" id="L30">        return rsaJwk;</span>
+    }
+
+    private static RSAKey generate() {
+        try {
+<span class="nc" id="L35">            KeyPairGenerator kpg = KeyPairGenerator.getInstance(&quot;RSA&quot;);</span>
+<span class="nc" id="L36">            kpg.initialize(2048);</span>
+<span class="nc" id="L37">            KeyPair kp = kpg.generateKeyPair();</span>
+<span class="nc" id="L38">            RSAPublicKey pub = (RSAPublicKey) kp.getPublic();</span>
+<span class="nc" id="L39">            RSAPrivateKey priv = (RSAPrivateKey) kp.getPrivate();</span>
+<span class="nc" id="L40">            return new RSAKey.Builder(pub)</span>
+<span class="nc" id="L41">                    .privateKey(priv)</span>
+<span class="nc" id="L42">                    .keyUse(KeyUse.SIGNATURE)</span>
+<span class="nc" id="L43">                    .algorithm(JWSAlgorithm.RS256)</span>
+<span class="nc" id="L44">                    .keyID(UUID.randomUUID().toString())</span>
+<span class="nc" id="L45">                    .build();</span>
+<span class="nc" id="L46">        } catch (Exception e) {</span>
+<span class="nc" id="L47">            throw new IllegalStateException(&quot;Failed to generate RSA key&quot;, e);</span>
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
