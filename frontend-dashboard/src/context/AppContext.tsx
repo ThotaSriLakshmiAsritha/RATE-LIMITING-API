@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { ApiError, apiRequest } from '../api/client';
 import type { AppState, HealthState, Metrics, RateLimitHeaders, RequestEntry, ToastItem } from '../types';
 import { extractRateLimitHeaders } from '../utils/headers';
@@ -138,28 +138,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem(REQUEST_HISTORY_KEY, JSON.stringify(state.requestHistory));
   }, [state.requestHistory]);
 
-  const addToast = (toast: Omit<ToastItem, 'id'>) => {
+  const addToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
     const id = crypto.randomUUID();
     dispatch({ type: 'ADD_TOAST', value: { ...toast, id } });
     window.setTimeout(() => dispatch({ type: 'REMOVE_TOAST', value: id }), 4000);
-  };
+  }, []);
 
-  const logout = (redirectToLogin = false) => {
+  const logout = useCallback((redirectToLogin = false) => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(USERNAME_KEY);
     dispatch({ type: 'LOGOUT' });
     if (redirectToLogin) {
       window.location.assign('/login');
     }
-  };
+  }, []);
 
-  const login = (token: string, username?: string | null) => {
+  const login = useCallback((token: string, username?: string | null) => {
     localStorage.setItem(AUTH_TOKEN_KEY, token);
     localStorage.setItem(USERNAME_KEY, username ?? getJwtSubject(token));
     dispatch({ type: 'SET_AUTH', token, username: username ?? null });
-  };
+  }, []);
 
-  const executeTrackedRequest = async <T,>({
+  const executeTrackedRequest = useCallback(async <T,>({
     label,
     path,
     method = 'GET',
@@ -267,31 +267,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       throw error;
     }
-  };
+  }, [addToast, logout, state.apiBaseUrl, state.authToken]);
+
+  const setExplainerHidden = useCallback((hidden: boolean) => {
+    hideExplainerRef.current = hidden;
+    localStorage.setItem(HIDE_EXPLAINER_KEY, String(hidden));
+  }, []);
+
+  const setApiBaseUrl = useCallback((value: string) => {
+    localStorage.setItem(API_BASE_URL_KEY, value);
+    dispatch({ type: 'SET_API_BASE_URL', value });
+  }, []);
+
+  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
+    dispatch({ type: 'SET_SIDEBAR_COLLAPSED', value: collapsed });
+  }, []);
+
+  const setBackendHealth = useCallback((health: HealthState) => {
+    dispatch({ type: 'SET_BACKEND_HEALTH', value: health });
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    dispatch({ type: 'REMOVE_TOAST', value: id });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    dispatch({ type: 'CLEAR_HISTORY' });
+  }, []);
 
   const value = useMemo<AppContextValue>(
     () => ({
       state,
       metrics: computeMetrics(state.requestHistory),
       explainerHidden: hideExplainerRef.current,
-      setExplainerHidden: (hidden) => {
-        hideExplainerRef.current = hidden;
-        localStorage.setItem(HIDE_EXPLAINER_KEY, String(hidden));
-      },
-      setApiBaseUrl: (value) => {
-        localStorage.setItem(API_BASE_URL_KEY, value);
-        dispatch({ type: 'SET_API_BASE_URL', value });
-      },
-      setSidebarCollapsed: (collapsed) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', value: collapsed }),
-      setBackendHealth: (health) => dispatch({ type: 'SET_BACKEND_HEALTH', value: health }),
+      setExplainerHidden,
+      setApiBaseUrl,
+      setSidebarCollapsed,
+      setBackendHealth,
       addToast,
-      removeToast: (id) => dispatch({ type: 'REMOVE_TOAST', value: id }),
+      removeToast,
       login,
       logout,
-      clearHistory: () => dispatch({ type: 'CLEAR_HISTORY' }),
+      clearHistory,
       executeTrackedRequest,
     }),
-    [state],
+    [addToast, clearHistory, executeTrackedRequest, login, logout, removeToast, setApiBaseUrl, setBackendHealth, setExplainerHidden, setSidebarCollapsed, state],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

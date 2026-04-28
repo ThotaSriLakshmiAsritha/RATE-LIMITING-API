@@ -18,17 +18,24 @@ public class DemoDataInitializer {
     @Bean
     CommandLineRunner seedDemoUser(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            userRepository.findByUsername("demo").orElseGet(() -> {
-                UserEntity u = new UserEntity();
-                u.setId(UUID.randomUUID());
-                u.setUsername("demo");
-                u.setEmail("demo@example.com");
-                u.setPasswordHash(passwordEncoder.encode("password"));
-                u.setRole("USER");
-                u.setCreatedAt(Instant.now());
-                u.setUpdatedAt(Instant.now());
-                return userRepository.save(u);
+            Instant now = Instant.now();
+            UserEntity user = userRepository.findByUsername("demo").orElseGet(() -> {
+                UserEntity entity = new UserEntity();
+                entity.setId(UUID.randomUUID());
+                entity.setCreatedAt(now);
+                return entity;
             });
+
+            user.setUsername("demo");
+            user.setEmail("demo@example.com");
+            user.setPasswordHash(passwordEncoder.encode("password"));
+            user.setRole("USER");
+            user.setUpdatedAt(now);
+            if (user.getCreatedAt() == null) {
+                user.setCreatedAt(now);
+            }
+
+            userRepository.save(user);
         };
     }
 }

@@ -12,8 +12,8 @@ export function useHealthPoll() {
       if (cancelled) return;
       setBackendHealth({
         status: 'checking',
-        latencyMs: state.backendHealth.latencyMs,
-        lastCheckedAt: state.backendHealth.lastCheckedAt,
+        latencyMs: null,
+        lastCheckedAt: null,
       });
       try {
         const start = performance.now();

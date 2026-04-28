@@ -22,8 +22,8 @@ Write-Host "[*] Waiting for Docker services to be healthy..." -ForegroundColor Y
 Start-Sleep -Seconds 5
 
 # Start Backend (Spring Boot) in new window
-Write-Host "`n[*] Starting Backend (Spring Boot on port 8080)..." -ForegroundColor Green
-Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot'; mvn.cmd spring-boot:run" -WindowStyle Normal
+Write-Host "`n[*] Starting Backend (Spring Boot on port 8080, demo profile)..." -ForegroundColor Green
+Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot'; `$env:SPRING_PROFILES_ACTIVE='demo'; mvn.cmd spring-boot:run" -WindowStyle Normal
 
 # Wait for backend to be ready
 Write-Host "[*] Waiting for backend to be ready..." -ForegroundColor Yellow

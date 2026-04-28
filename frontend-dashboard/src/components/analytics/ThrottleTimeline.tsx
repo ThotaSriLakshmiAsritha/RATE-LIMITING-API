@@ -15,10 +15,10 @@ export function ThrottleTimeline({ history }: { history: RequestEntry[] }) {
   });
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <h3 className="font-display text-xl text-white">Throttle Rate Timeline</h3>
       <p className="mt-1 text-sm text-slate-400">A rolling view of how often the backend started saying “slow down.”</p>
-      <div className="mt-4 h-72">
+      <div className="mt-4 h-72 min-w-0">
         <ResponsiveContainer>
           <AreaChart data={data}>
             <CartesianGrid stroke="#263043" strokeDasharray="3 3" />

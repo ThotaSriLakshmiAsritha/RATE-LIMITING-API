@@ -151,9 +151,17 @@ export function ApiTester() {
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
             <h4 className="font-display text-lg text-white">Authentication</h4>
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-[1fr,1fr,auto]">
+          <form
+            className="mt-4 grid gap-4 md:grid-cols-[1fr,1fr,auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleLogin();
+            }}
+          >
             <input
               aria-label="Authentication username"
+              name="tester-username"
+              autoComplete="username"
               value={credentials.username}
               onChange={(event) => setCredentials((current) => ({ ...current, username: event.target.value }))}
               className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
@@ -161,17 +169,19 @@ export function ApiTester() {
             />
             <input
               aria-label="Authentication password"
+              name="tester-password"
               type="password"
+              autoComplete="current-password"
               value={credentials.password}
               onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))}
               className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
               placeholder="password"
             />
-            <Button onClick={handleLogin} disabled={loading} aria-label="Sign in and store JWT token">
+            <Button type="submit" disabled={loading} aria-label="Sign in and store JWT token">
               <LogIn className="mr-2 h-4 w-4" />
               POST /api/auth/login
             </Button>
-          </div>
+          </form>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Badge tone={tokenStatus.tone}>{tokenStatus.label}</Badge>
             <span className="text-sm text-slate-400">{tokenStatus.detail}</span>

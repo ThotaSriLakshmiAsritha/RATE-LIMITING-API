@@ -10,10 +10,10 @@ export function DistributionChart({ metrics }: { metrics: Metrics }) {
   ];
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <h3 className="font-display text-xl text-white">Request Outcome Distribution</h3>
       <p className="mt-1 text-sm text-slate-400">See how much of the current session was allowed, throttled, or failed for other reasons.</p>
-      <div className="mt-4 h-72">
+      <div className="mt-4 h-72 min-w-0">
         <ResponsiveContainer>
           <PieChart>
             <Pie data={data} dataKey="value" nameKey="name" innerRadius={70} outerRadius={100} label>

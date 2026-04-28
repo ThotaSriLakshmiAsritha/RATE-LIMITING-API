@@ -1,18 +1,18 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AppProvider } from './context/AppContext';
-import { Sidebar } from './components/layout/Sidebar';
-import { TopNav } from './components/layout/TopNav';
-import { ProtectedRoute } from './components/layout/ProtectedRoute';
-import { ToastViewport } from './components/common/Toast';
+import { Sidebar } from './components/layout/Sidebar.tsx';
+import { TopNav } from './components/layout/TopNav.tsx';
+import { ProtectedRoute } from './components/layout/ProtectedRoute.tsx';
+import { ToastViewport } from './components/common/Toast.tsx';
 import { useHealthPoll } from './hooks/useHealthPoll';
-import { Login } from './pages/Login';
-import { NotFound } from './pages/NotFound';
-import { Dashboard } from './pages/Dashboard';
-import { Analytics } from './pages/Analytics';
-import { RateLimits } from './pages/RateLimits';
-import { Settings } from './pages/Settings';
-import { Admin } from './pages/Admin';
+import { Login } from './pages/Login.tsx';
+import { NotFound } from './pages/NotFound.tsx';
+import { Dashboard } from './pages/Dashboard.tsx';
+import { Analytics } from './pages/Analytics.tsx';
+import { RateLimits } from './pages/RateLimits.tsx';
+import { Settings } from './pages/Settings.tsx';
+import { Admin } from './pages/Admin.tsx';
 
 const titleMap: Record<string, string> = {
   '/': 'Operational Dashboard',

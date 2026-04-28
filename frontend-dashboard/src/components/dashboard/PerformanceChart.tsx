@@ -12,7 +12,7 @@ export function PerformanceChart({ history }: { history: RequestEntry[] }) {
   }));
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <div className="mb-4">
         <h3 className="font-display text-xl text-white">Performance Line</h3>
         <p className="mt-1 text-sm text-slate-400">Response-speed shape over your most recent traffic window.</p>
@@ -20,7 +20,7 @@ export function PerformanceChart({ history }: { history: RequestEntry[] }) {
       {recent.length === 0 ? (
         <EmptyState title="No requests yet." description="Run a few API calls to render performance trends." />
       ) : (
-        <div className="h-80">
+        <div className="h-80 min-w-0">
           <ResponsiveContainer>
             <LineChart data={recent}>
               <CartesianGrid stroke="#263043" strokeDasharray="3 3" />

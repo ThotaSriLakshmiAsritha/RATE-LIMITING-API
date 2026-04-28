@@ -56,6 +56,8 @@ export function Login() {
             Username
             <input
               aria-label="Username"
+              name="username"
+              autoComplete="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
@@ -65,7 +67,9 @@ export function Login() {
             Password
             <input
               aria-label="Password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"

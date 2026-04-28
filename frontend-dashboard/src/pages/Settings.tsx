@@ -112,10 +112,10 @@ export function Settings() {
             Test Connection
           </Button>
           <a className="inline-flex items-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-sky-400" href={`${state.apiBaseUrl}/swagger-ui.html`} target="_blank" rel="noreferrer">
-            Open Swagger UI ->
+            Open Swagger UI {'->'}
           </a>
           <a className="inline-flex items-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-sky-400" href={`${state.apiBaseUrl}/actuator/prometheus`} target="_blank" rel="noreferrer">
-            View Prometheus Metrics ->
+            View Prometheus Metrics {'->'}
           </a>
         </div>
         {connectionMessage ? <p className="mt-3 text-sm text-slate-300">{connectionMessage}</p> : null}

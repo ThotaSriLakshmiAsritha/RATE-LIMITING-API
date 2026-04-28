@@ -18,10 +18,10 @@ export function HistogramChart({ history }: { history: RequestEntry[] }) {
   }));
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <h3 className="font-display text-xl text-white">Response Time Distribution</h3>
       <p className="mt-1 text-sm text-slate-400">Buckets help non-technical viewers see what “fast” and “slow” look like at a glance.</p>
-      <div className="mt-4 h-72">
+      <div className="mt-4 h-72 min-w-0">
         <ResponsiveContainer>
           <BarChart data={data}>
             <CartesianGrid stroke="#263043" strokeDasharray="3 3" />
